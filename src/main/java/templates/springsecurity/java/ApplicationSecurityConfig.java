@@ -2,7 +2,9 @@ package templates.springsecurity.java;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -12,6 +14,8 @@ import org.springframework.security.web.SecurityFilterChain;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
+@Configuration
+@EnableWebSecurity
 public class ApplicationSecurityConfig  {
 
     private final PasswordEncoder passwordEncoder;
@@ -37,17 +41,20 @@ public class ApplicationSecurityConfig  {
 
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
-        return (web) -> web.ignoring().antMatchers("/ignore1", "/ignore2");
+        return (web) -> web.ignoring().antMatchers("/ignore1",   "/ignore2");
     }
-
 
     @Bean
     public InMemoryUserDetailsManager userDetailsService() {
-    String encodedPassword= passwordEncoder.encode("password");
-        UserDetails user = User.withUsername("jayrathod")
-                .password(encodedPassword)
-                .roles("USER") //this internally will be role_admin
+        UserDetails user1 = User.withUsername("jayneversettle")
+                .password(passwordEncoder.encode("password"))
+                .roles("STUDENT") //this internally will be role_admin
                 .build();
-        return new InMemoryUserDetailsManager(user);
+
+                UserDetails user2 = User.withUsername("neversettlejay")
+                .password(passwordEncoder.encode("password"))
+                .roles("ADMIN") //this internally will be role_admin
+                .build();
+        return new InMemoryUserDetailsManager(user1, user2);
     }
 }
