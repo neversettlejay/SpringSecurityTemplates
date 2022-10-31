@@ -1,6 +1,11 @@
 package templates.springsecurity.java;
 
 import java.util.Set;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import com.google.common.collect.Sets;
 
@@ -8,7 +13,9 @@ import templates.springsecurity.ApplicationUserPermission;
 
 public enum ApplicationUserRole {
     STUDENT(Sets.newHashSet()),
-    ADMIN(Sets.newHashSet(ApplicationUserPermission.COURSE_READ, ApplicationUserPermission.COURSE_WRITE, ApplicationUserPermission.STUDENT_READ, ApplicationUserPermission.STUDENT_WRITE));
+    ADMIN(Sets.newHashSet(ApplicationUserPermission.COURSE_READ, ApplicationUserPermission.COURSE_WRITE, ApplicationUserPermission.STUDENT_READ, ApplicationUserPermission.STUDENT_WRITE)),
+    ADMINTRAINEE(Sets.newHashSet( ApplicationUserPermission.COURSE_READ, ApplicationUserPermission.STUDENT_READ));
+
 
     private final Set<ApplicationUserPermission> permissions;
 
@@ -21,6 +28,16 @@ public enum ApplicationUserRole {
         return permissions;
     }
 
+
+
+    public Set<SimpleGrantedAuthority> getGrantedAuthorities(){
+        Set<SimpleGrantedAuthority> permissions=
+        getPermissions().stream().map(permission-> new SimpleGrantedAuthority(permission.getPermission())).collect(Collectors.toSet());
+
+        permissions.add(new SimpleGrantedAuthority("ROLE_" + this.name()));
+        return permissions;
+
+    }
 
 
 

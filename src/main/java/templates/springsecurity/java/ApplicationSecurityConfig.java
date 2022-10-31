@@ -3,6 +3,7 @@ package templates.springsecurity.java;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
@@ -11,6 +12,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+
+import templates.springsecurity.ApplicationUserPermission;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -29,10 +32,16 @@ public class ApplicationSecurityConfig  {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                .csrf().disable()
                 // .authorizeHttpRequests((aut) -> aut.anyRequest().authenticated())
                 .authorizeRequests()
                 .antMatchers("/index", "/css","/js").permitAll()
                 .antMatchers("/api/**").hasRole(ApplicationUserRole.STUDENT.name())
+                // .antMatchers("/api/**").hasAnyRole(ApplicationUserRole.ADMINTRAINEE.name())
+                .antMatchers(HttpMethod.DELETE, "/management/api/**").hasAuthority(ApplicationUserPermission.COURSE_WRITE.getPermission())
+                .antMatchers(HttpMethod.POST, "/management/api/**").hasAuthority(ApplicationUserPermission.COURSE_WRITE.getPermission())
+                .antMatchers(HttpMethod.PUT, "/management/api/**").hasAuthority(ApplicationUserPermission.COURSE_WRITE.getPermission())
+                .antMatchers(HttpMethod.GET, "/management/api/**").hasAnyRole(ApplicationUserRole.ADMIN.name(), ApplicationUserRole.ADMINTRAINEE.name())
                 .anyRequest()
                 .authenticated()
                 .and()
@@ -51,15 +60,24 @@ public class ApplicationSecurityConfig  {
 
     @Bean
     public InMemoryUserDetailsManager userDetailsService() {
-        UserDetails user1 = User.withUsername("jayneversettle")
-                .password(passwordEncoder.encode("password"))
+        UserDetails student = User.withUsername("student")
+                .password(passwordEncoder.encode("student"))
                 .roles(ApplicationUserRole.STUDENT.name()) //this internally will be role_student
+                .authorities(ApplicationUserRole.STUDENT.getGrantedAuthorities())
                 .build();
 
-                UserDetails user2 = User.withUsername("neversettlejay")
-                .password(passwordEncoder.encode("password"))
+                UserDetails admin = User.withUsername("admin")
+                .password(passwordEncoder.encode("admin"))
                 .roles(ApplicationUserRole.ADMIN.name()) //this internally will be role_admin
+                .authorities(ApplicationUserRole.ADMIN.getGrantedAuthorities())
                 .build();
-        return new InMemoryUserDetailsManager(user1, user2);
+
+
+                UserDetails admintrainee = User.withUsername("admintrainee")
+                .password(passwordEncoder.encode("admintrainiee"))
+                .roles(ApplicationUserRole.ADMINTRAINEE.name()) //this internally will be role_admintrainee
+                .authorities(ApplicationUserRole.ADMINTRAINEE.getGrantedAuthorities())
+                .build();
+        return new InMemoryUserDetailsManager(student, admin, admintrainee);
     }
 }
