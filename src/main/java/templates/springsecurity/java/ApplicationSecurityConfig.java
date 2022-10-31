@@ -29,9 +29,13 @@ public class ApplicationSecurityConfig  {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .authorizeHttpRequests((aut) -> aut
-                        .anyRequest().authenticated()
-                )
+                // .authorizeHttpRequests((aut) -> aut.anyRequest().authenticated())
+                .authorizeRequests()
+                .antMatchers("/index", "/css","/js").permitAll()
+                .antMatchers("/api/**").hasRole(ApplicationUserRole.STUDENT.name())
+                .anyRequest()
+                .authenticated()
+                .and()
                 .httpBasic(withDefaults());
 
         return http.build();
@@ -41,6 +45,7 @@ public class ApplicationSecurityConfig  {
 
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
+        
         return (web) -> web.ignoring().antMatchers("/ignore1",   "/ignore2");
     }
 
@@ -48,12 +53,12 @@ public class ApplicationSecurityConfig  {
     public InMemoryUserDetailsManager userDetailsService() {
         UserDetails user1 = User.withUsername("jayneversettle")
                 .password(passwordEncoder.encode("password"))
-                .roles("STUDENT") //this internally will be role_admin
+                .roles(ApplicationUserRole.STUDENT.name()) //this internally will be role_student
                 .build();
 
                 UserDetails user2 = User.withUsername("neversettlejay")
                 .password(passwordEncoder.encode("password"))
-                .roles("ADMIN") //this internally will be role_admin
+                .roles(ApplicationUserRole.ADMIN.name()) //this internally will be role_admin
                 .build();
         return new InMemoryUserDetailsManager(user1, user2);
     }
