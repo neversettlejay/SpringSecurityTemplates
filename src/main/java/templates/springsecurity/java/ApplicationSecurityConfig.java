@@ -36,12 +36,16 @@ public class ApplicationSecurityConfig  {
                 // .authorizeHttpRequests((aut) -> aut.anyRequest().authenticated())
                 .authorizeRequests()
                 .antMatchers("/index", "/css","/js").permitAll()
-                .antMatchers("/api/**").hasRole(ApplicationUserRole.STUDENT.name())
+                .antMatchers("/api/**").hasAuthority(ApplicationUserRole.STUDENT.name())
                 // .antMatchers("/api/**").hasAnyRole(ApplicationUserRole.ADMINTRAINEE.name())
                 .antMatchers(HttpMethod.DELETE, "/management/api/**").hasAuthority(ApplicationUserPermission.COURSE_WRITE.getPermission())
                 .antMatchers(HttpMethod.POST, "/management/api/**").hasAuthority(ApplicationUserPermission.COURSE_WRITE.getPermission())
                 .antMatchers(HttpMethod.PUT, "/management/api/**").hasAuthority(ApplicationUserPermission.COURSE_WRITE.getPermission())
-                .antMatchers(HttpMethod.GET, "/management/api/**").hasAnyRole(ApplicationUserRole.ADMIN.name(), ApplicationUserRole.ADMINTRAINEE.name())
+                .antMatchers(HttpMethod.GET, "/management/api/**").hasAnyRole(ApplicationUserRole.ADMIN.name(),ApplicationUserRole.ADMINTRAINEE.name())
+                /*
+                 * Order of Ant matchers matter like if we do ".antMatchers( "/management/api/**").hasAnyRole(ApplicationUserRole.ADMIN.name(),ApplicationUserRole.ADMINTRAINEE.name())" 
+                 * in the very beginning of ant matchers as we have not specified which http method the admintrainee will get the right of put, post delete too instead of just read.
+                 */
                 .anyRequest()
                 .authenticated()
                 .and()
@@ -74,7 +78,7 @@ public class ApplicationSecurityConfig  {
 
 
                 UserDetails admintrainee = User.withUsername("admintrainee")
-                .password(passwordEncoder.encode("admintrainiee"))
+                .password(passwordEncoder.encode("admintrainee"))
                 .roles(ApplicationUserRole.ADMINTRAINEE.name()) //this internally will be role_admintrainee
                 .authorities(ApplicationUserRole.ADMINTRAINEE.getGrantedAuthorities())
                 .build();
