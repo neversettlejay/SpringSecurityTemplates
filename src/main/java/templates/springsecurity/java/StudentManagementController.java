@@ -21,7 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 public class StudentManagementController {
     private static List<Student> students= Arrays.asList(new Student(1,"Jay Rathod"), new Student(2, "Jay Billionaire"), new Student(3, "Jay Millionaire"));
     @GetMapping
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN, ROLE_ADMINTRAINEE')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_ADMINTRAINEE')")
     public List<Student> getAllStudents(){
         return students;
     }

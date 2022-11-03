@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
@@ -12,13 +13,18 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
 
 import templates.springsecurity.ApplicationUserPermission;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
+import javax.servlet.http.Cookie;
+
 @Configuration
 @EnableWebSecurity
+@EnableGlobalMethodSecurity(prePostEnabled = true)
 public class ApplicationSecurityConfig  {
 
     private final PasswordEncoder passwordEncoder;
@@ -32,16 +38,21 @@ public class ApplicationSecurityConfig  {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+        /*We disable Cross Site Request Forgery because we dont want any other user to send a malicious link that contains the operations that would do something in our system. Hence to be cautions we validate csrf token in every request.
+        server sends csrf token after client request something and then in each operation the csrf token is sent with the request to validate the token to not let csrf happen.
+        */ 
                 .csrf().disable()
+                // .csrf().csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                // .and() //this enables csrf
                 // .authorizeHttpRequests((aut) -> aut.anyRequest().authenticated())
                 .authorizeRequests()
                 .antMatchers("/index", "/css","/js").permitAll()
                 .antMatchers("/api/**").hasAuthority(ApplicationUserRole.STUDENT.name())
                 // .antMatchers("/api/**").hasAnyRole(ApplicationUserRole.ADMINTRAINEE.name())
-                .antMatchers(HttpMethod.DELETE, "/management/api/**").hasAuthority(ApplicationUserPermission.COURSE_WRITE.getPermission())
-                .antMatchers(HttpMethod.POST, "/management/api/**").hasAuthority(ApplicationUserPermission.COURSE_WRITE.getPermission())
-                .antMatchers(HttpMethod.PUT, "/management/api/**").hasAuthority(ApplicationUserPermission.COURSE_WRITE.getPermission())
-                .antMatchers(HttpMethod.GET, "/management/api/**").hasAnyRole(ApplicationUserRole.ADMIN.name(),ApplicationUserRole.ADMINTRAINEE.name())
+                // .antMatchers(HttpMethod.DELETE, "/management/api/**").hasAuthority(ApplicationUserPermission.COURSE_WRITE.getPermission())
+                // .antMatchers(HttpMethod.POST, "/management/api/**").hasAuthority(ApplicationUserPermission.COURSE_WRITE.getPermission())
+                // .antMatchers(HttpMethod.PUT, "/management/api/**").hasAuthority(ApplicationUserPermission.COURSE_WRITE.getPermission())
+                // .antMatchers(HttpMethod.GET, "/management/api/**").hasAnyRole(ApplicationUserRole.ADMIN.name(),ApplicationUserRole.ADMINTRAINEE.name())
                 /*
                  * Order of Ant matchers matter like if we do ".antMatchers( "/management/api/**").hasAnyRole(ApplicationUserRole.ADMIN.name(),ApplicationUserRole.ADMINTRAINEE.name())" 
                  * in the very beginning of ant matchers as we have not specified which http method the admintrainee will get the right of put, post delete too instead of just read.
@@ -49,7 +60,14 @@ public class ApplicationSecurityConfig  {
                 .anyRequest()
                 .authenticated()
                 .and()
-                .httpBasic(withDefaults());
+                // .httpBasic(withDefaults());// for basic authentication
+                .formLogin().loginPage("/login").permitAll()
+                .defaultSuccessUrl("/courses",true)
+                .and()
+                .rememberMe()
+                /*remember me is used because sessionid which is responsible for authentication expires in 30 minutes of inactivity so remember me defaults to 2 weeks. */
+                ;//for formbased authentication
+
 
         return http.build();
     }
