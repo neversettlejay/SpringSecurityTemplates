@@ -15,10 +15,13 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import templates.springsecurity.ApplicationUserPermission;
 
 import static org.springframework.security.config.Customizer.withDefaults;
+
+import java.util.concurrent.TimeUnit;
 
 import javax.servlet.http.Cookie;
 
@@ -64,8 +67,16 @@ public class ApplicationSecurityConfig  {
                 .formLogin().loginPage("/login").permitAll()
                 .defaultSuccessUrl("/courses",true)
                 .and()
-                .rememberMe()
+                .rememberMe().tokenValiditySeconds((int) TimeUnit.DAYS.toSeconds(21)).key("somethingVerySecure")//key is used to generate the expiration date to store in the remember me cookie that contains username, expiration time and md5 hash of them.
                 /*remember me is used because sessionid which is responsible for authentication expires in 30 minutes of inactivity so remember me defaults to 2 weeks. */
+                .and()
+                .logout()
+                .logoutUrl("/logout")//if csrf is enabled then we need to do logoutUrl post method request to logout, if csrf is disabled then its okay to use any http method
+                .logoutRequestMatcher(new AntPathRequestMatcher("logout","GET"))
+                .clearAuthentication(true)
+                .invalidateHttpSession(true)
+                .deleteCookies("remember-me", "JSESSIONID")
+                .logoutSuccessUrl("/login")
                 ;//for formbased authentication
 
 
