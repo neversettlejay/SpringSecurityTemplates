@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configurers.userdetails.DaoAuthenticationConfigurer;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -31,9 +33,11 @@ import javax.servlet.http.Cookie;
 public class ApplicationSecurityConfig  {
 
     private final PasswordEncoder passwordEncoder;
+    private final ApplicationUserService applicationUserService;
 @Autowired
-    public ApplicationSecurityConfig(PasswordEncoder passwordEncoder) {
+    public ApplicationSecurityConfig(PasswordEncoder passwordEncoder, ApplicationUserService applicationUserService) {
         this.passwordEncoder = passwordEncoder;
+        this.applicationUserService=applicationUserService;
     }
 
 
@@ -82,6 +86,7 @@ public class ApplicationSecurityConfig  {
                 .logoutSuccessUrl("/login")
                 ;//for formbased authentication
 
+                http.authenticationProvider(daoAuthenticationProvider());
 
         return http.build();
     }
@@ -94,27 +99,41 @@ public class ApplicationSecurityConfig  {
         return (web) -> web.ignoring().antMatchers("/ignore1",   "/ignore2");
     }
 // here we can override JdbcDaoImpl too to store users in the database.
-    @Bean
-    public InMemoryUserDetailsManager userDetailsService() {
-        UserDetails student = User.withUsername("student")
-                .password(passwordEncoder.encode("student"))
-                .roles(ApplicationUserRole.STUDENT.name()) //this internally will be role_student
-                .authorities(ApplicationUserRole.STUDENT.getGrantedAuthorities())
-                .build();
+    // @Bean
+    // public InMemoryUserDetailsManager userDetailsService() {
+    //     UserDetails student = User.withUsername("student")
+    //             .password(passwordEncoder.encode("student"))
+    //             .roles(ApplicationUserRole.STUDENT.name()) //this internally will be role_student
+    //             .authorities(ApplicationUserRole.STUDENT.getGrantedAuthorities())
+    //             .build();
 
-                UserDetails admin = User.withUsername("admin")
-                .password(passwordEncoder.encode("admin"))
-                .roles(ApplicationUserRole.ADMIN.name()) //this internally will be role_admin
-                .authorities(ApplicationUserRole.ADMIN.getGrantedAuthorities())
-                .build();
+    //             UserDetails admin = User.withUsername("admin")
+    //             .password(passwordEncoder.encode("admin"))
+    //             .roles(ApplicationUserRole.ADMIN.name()) //this internally will be role_admin
+    //             .authorities(ApplicationUserRole.ADMIN.getGrantedAuthorities())
+    //             .build();
                 
 
 
-                UserDetails admintrainee = User.withUsername("admintrainee")
-                .password(passwordEncoder.encode("admintrainee"))
-                .roles(ApplicationUserRole.ADMINTRAINEE.name()) //this internally will be role_admintrainee
-                .authorities(ApplicationUserRole.ADMINTRAINEE.getGrantedAuthorities())
-                .build();
-        return new InMemoryUserDetailsManager(student, admin, admintrainee);
-    }
+    //             UserDetails admintrainee = User.withUsername("admintrainee")
+    //             .password(passwordEncoder.encode("admintrainee"))
+    //             .roles(ApplicationUserRole.ADMINTRAINEE.name()) //this internally will be role_admintrainee
+    //             .authorities(ApplicationUserRole.ADMINTRAINEE.getGrantedAuthorities())
+    //             .build();
+    //     return new InMemoryUserDetailsManager(student, admin, admintrainee);
+    // }
+
+    
+        @Bean
+        public DaoAuthenticationProvider daoAuthenticationProvider(){
+            DaoAuthenticationProvider daoAuthenticationProvider=new DaoAuthenticationProvider();
+            daoAuthenticationProvider.setPasswordEncoder(passwordEncoder);
+            daoAuthenticationProvider.setUserDetailsService(applicationUserService);
+
+
+            return daoAuthenticationProvider;
+
+
+        }
+
 }
