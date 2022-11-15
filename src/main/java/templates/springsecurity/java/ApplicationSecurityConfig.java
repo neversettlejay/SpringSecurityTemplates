@@ -66,13 +66,16 @@ public class ApplicationSecurityConfig  {
                 // .httpBasic(withDefaults());// for basic authentication
                 .formLogin().loginPage("/login").permitAll()
                 .defaultSuccessUrl("/courses",true)
+                .passwordParameter("password-jay")
+                .usernameParameter("username-jay")
                 .and()
                 .rememberMe().tokenValiditySeconds((int) TimeUnit.DAYS.toSeconds(21)).key("somethingVerySecure")//key is used to generate the expiration date to store in the remember me cookie that contains username, expiration time and md5 hash of them.
                 /*remember me is used because sessionid which is responsible for authentication expires in 30 minutes of inactivity so remember me defaults to 2 weeks. */
+                .rememberMeParameter("remember-me-jay")
                 .and()
                 .logout()
                 .logoutUrl("/logout")//if csrf is enabled then we need to do logoutUrl post method request to logout, if csrf is disabled then its okay to use any http method
-                .logoutRequestMatcher(new AntPathRequestMatcher("logout","GET"))
+                // .logoutRequestMatcher(new AntPathRequestMatcher("logout","GET"))
                 .clearAuthentication(true)
                 .invalidateHttpSession(true)
                 .deleteCookies("remember-me", "JSESSIONID")
@@ -90,7 +93,7 @@ public class ApplicationSecurityConfig  {
         
         return (web) -> web.ignoring().antMatchers("/ignore1",   "/ignore2");
     }
-
+// here we can override JdbcDaoImpl too to store users in the database.
     @Bean
     public InMemoryUserDetailsManager userDetailsService() {
         UserDetails student = User.withUsername("student")
@@ -104,6 +107,7 @@ public class ApplicationSecurityConfig  {
                 .roles(ApplicationUserRole.ADMIN.name()) //this internally will be role_admin
                 .authorities(ApplicationUserRole.ADMIN.getGrantedAuthorities())
                 .build();
+                
 
 
                 UserDetails admintrainee = User.withUsername("admintrainee")
