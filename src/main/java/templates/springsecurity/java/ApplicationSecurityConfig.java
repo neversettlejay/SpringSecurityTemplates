@@ -4,12 +4,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.authentication.configurers.userdetails.DaoAuthenticationConfigurer;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,13 +37,31 @@ public class ApplicationSecurityConfig  {
 
     private final PasswordEncoder passwordEncoder;
     private final ApplicationUserService applicationUserService;
+    private AuthenticationConfiguration authenticationConfiguration;
 @Autowired
-    public ApplicationSecurityConfig(PasswordEncoder passwordEncoder, ApplicationUserService applicationUserService) {
-        this.passwordEncoder = passwordEncoder;
+    public ApplicationSecurityConfig(
+            AuthenticationConfiguration authenticationConfiguration , PasswordEncoder passwordEncoder, ApplicationUserService applicationUserService) {
+                this.authenticationConfiguration=authenticationConfiguration;
+                this.passwordEncoder = passwordEncoder;
         this.applicationUserService=applicationUserService;
     }
 
+    @Bean
+    public DaoAuthenticationProvider daoAuthenticationProvider() {
+        DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
+        daoAuthenticationProvider.setPasswordEncoder(passwordEncoder);
+        daoAuthenticationProvider.setUserDetailsService(applicationUserService);
 
+        return daoAuthenticationProvider;
+
+    }
+
+
+
+    @Bean
+    public AuthenticationManager authenticationManager() throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
+    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -49,6 +70,11 @@ public class ApplicationSecurityConfig  {
         server sends csrf token after client request something and then in each operation the csrf token is sent with the request to validate the token to not let csrf happen.
         */ 
                 .csrf().disable()
+                .sessionManagement()
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+                /*What goes in authenticationManager object?*/
+                .addFilter(new JwtUsernameAndPasswordAuthenticationFilter(authenticationManager())) // username and password will be checked and jwt token will be generated onse the login is successful.
                 // .csrf().csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 // .and() //this enables csrf
                 // .authorizeHttpRequests((aut) -> aut.anyRequest().authenticated())
@@ -65,32 +91,32 @@ public class ApplicationSecurityConfig  {
                  * in the very beginning of ant matchers as we have not specified which http method the admintrainee will get the right of put, post delete too instead of just read.
                  */
                 .anyRequest()
-                .authenticated()
-                .and()
-                // .httpBasic(withDefaults());// for basic authentication
-                .formLogin().loginPage("/login").permitAll()
-                .defaultSuccessUrl("/courses",true)
-                .passwordParameter("password-jay")
-                .usernameParameter("username-jay")
-                .and()
-                .rememberMe().tokenValiditySeconds((int) TimeUnit.DAYS.toSeconds(21)).key("somethingVerySecure")//key is used to generate the expiration date to store in the remember me cookie that contains username, expiration time and md5 hash of them.
-                /*remember me is used because sessionid which is responsible for authentication expires in 30 minutes of inactivity so remember me defaults to 2 weeks. */
-                .rememberMeParameter("remember-me-jay")
-                .and()
-                .logout()
-                .logoutUrl("/logout")//if csrf is enabled then we need to do logoutUrl post method request to logout, if csrf is disabled then its okay to use any http method
-                // .logoutRequestMatcher(new AntPathRequestMatcher("logout","GET"))
-                .clearAuthentication(true)
-                .invalidateHttpSession(true)
-                .deleteCookies("remember-me", "JSESSIONID")
-                .logoutSuccessUrl("/login")
-                ;//for formbased authentication
-
+                .authenticated();
+         
+                //  .and()
+                // // .httpBasic(withDefaults());// for basic authentication
+                // .formLogin().loginPage("/login").permitAll()
+                // .defaultSuccessUrl("/courses",true)
+                // .passwordParameter("password-jay")
+                // .usernameParameter("username-jay")
+                // .and()
+                // .rememberMe().tokenValiditySeconds((int) TimeUnit.DAYS.toSeconds(21)).key("somethingVerySecure")//key is used to generate the expiration date to store in the remember me cookie that contains username, expiration time and md5 hash of them.
+                // /*remember me is used because sessionid which is responsible for authentication expires in 30 minutes of inactivity so remember me defaults to 2 weeks. */
+                // .rememberMeParameter("remember-me-jay")
+                // .and()
+                // .logout()
+                // .logoutUrl("/logout")//if csrf is enabled then we need to do logoutUrl post method request to logout, if csrf is disabled then its okay to use any http method
+                // // .logoutRequestMatcher(new AntPathRequestMatcher("logout","GET"))
+                // .clearAuthentication(true)
+                // .invalidateHttpSession(true)
+                // .deleteCookies("remember-me", "JSESSIONID")
+                // .logoutSuccessUrl("/login")
+                // ;//for formbased authentication
+         
                 http.authenticationProvider(daoAuthenticationProvider());
 
         return http.build();
     }
-
 
 
     @Bean
@@ -123,17 +149,5 @@ public class ApplicationSecurityConfig  {
     //     return new InMemoryUserDetailsManager(student, admin, admintrainee);
     // }
 
-    
-        @Bean
-        public DaoAuthenticationProvider daoAuthenticationProvider(){
-            DaoAuthenticationProvider daoAuthenticationProvider=new DaoAuthenticationProvider();
-            daoAuthenticationProvider.setPasswordEncoder(passwordEncoder);
-            daoAuthenticationProvider.setUserDetailsService(applicationUserService);
-
-
-            return daoAuthenticationProvider;
-
-
-        }
 
 }
